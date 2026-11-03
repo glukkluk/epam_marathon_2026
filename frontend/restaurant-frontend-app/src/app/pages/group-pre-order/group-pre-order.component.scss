@@ -1,0 +1,62 @@
+:host { display: block; background: #f7f9f7; min-height: calc(100vh - 90px); }
+.group-page { max-width: 1200px; padding: 32px 24px 64px; margin: auto; }
+.back-link { color: #566259; font-size: 14px; text-decoration: none; display: inline-block; margin-bottom: 28px; }
+.back-link:hover { text-decoration: underline; }
+.page-heading, .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.page-heading { margin-bottom: 24px; }
+h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.25; font-weight: 600; margin: 6px 0 12px; }
+h2 { font-size: 20px; line-height: 1.4; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { line-height: 1.6; }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: #52745b; margin-bottom: 6px; }
+.muted, .hint, .empty-copy { color: #677269; font-size: 14px; }
+.hint { font-size: 13px; margin-top: 16px; }
+.status, .guest-status { border-radius: 20px; padding: 7px 12px; font-size: 12px; background: #e5f1e7; color: #176c36; white-space: nowrap; }
+.status--closed { color: #626762; background: #e7ebe7; }
+.guest-status { background: #fff3d9; color: #7d5d1d; }
+.guest-status--ready { background: #e5f1e7; color: #176c36; }
+.reservation-meta { display: flex; flex-wrap: wrap; gap: 12px 24px; padding-bottom: 24px; color: #566259; font-size: 14px; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 28px; }
+.selections { display: grid; gap: 24px; min-width: 0; }
+.panel { background: white; border: 1px solid #e0e7e1; border-radius: 16px; padding: 24px; }
+.invite-panel { background: #edf5ee; border-color: #d6e6d8; }
+.section-heading .muted { margin-top: 6px; }
+.own-selection { border-top: 3px solid #a6b5aa; }
+.guest-heading { margin-bottom: 16px; }
+.count { font-size: 13px; background: #e5eee7; padding: 3px 8px; border-radius: 10px; vertical-align: middle; }
+.guest-card { margin-bottom: 12px; border-left: 3px solid #268247; }
+.dish-row, .summary-row, .subtotal, .table-total { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; padding: 14px 0; }
+.dish-row { border-bottom: 1px solid #edf0ed; }
+.dish-row strong { white-space: nowrap; font-weight: 500; }
+.subtotal { padding-bottom: 0; color: #677269; }
+.empty-copy { padding-top: 20px; }
+.empty-state { text-align: center; padding: 36px 24px; border-style: dashed; }
+.empty-state img { width: 32px; height: 32px; margin-bottom: 12px; }
+.empty-state p { margin: 8px auto 0; max-width: 360px; }
+.summary { position: sticky; top: 24px; box-shadow: 0 6px 24px #173f2510; }
+.summary h2 { margin-bottom: 20px; }
+.table-total { border-top: 1px solid #dce5dd; margin-top: 8px; align-items: center; font-weight: 600; }
+.table-total strong { font-size: 26px; color: #126c35; }
+.action { display: inline-flex; justify-content: center; align-items: center; padding: 11px 16px; border-radius: 8px; border: 1px solid transparent; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; line-height: 1.4; flex-shrink: 0; }
+.action--primary { background: #117437; color: white; }
+.action--primary:hover:not(:disabled) { background: #095b28; }
+.action--outline { background: white; color: #176c36; border-color: #b7d0be; }
+.action--outline:hover:not(:disabled) { background: #edf5ee; }
+.action:disabled { opacity: .5; cursor: not-allowed; }
+.action:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid #5fa979; outline-offset: 3px; }
+.confirm { width: 100%; margin-top: 20px; }
+.notice { padding: 16px 20px; border-radius: 10px; background: #e9ede9; margin-bottom: 24px; font-size: 14px; }
+.notice--error { color: #a32121; background: #fff0ee; }
+.waiting { color: #805f24; background: #fff8e8; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 16px; }
+.confirmation { color: #176c36; background: #edf5ee; padding: 12px; border-radius: 8px; font-size: 14px; }
+label { display: block; font-size: 13px; margin: 20px 0 8px; }
+.share-row { display: flex; gap: 8px; }
+input { flex: 1; min-width: 0; padding: 12px; background: white; border: 1px solid #b7d0be; border-radius: 8px; font: inherit; font-size: 13px; }
+@media (max-width: 950px) { .workspace { grid-template-columns: 1fr; } .summary { position: static; } }
+@media (max-width: 600px) {
+  .group-page { padding: 24px 16px 40px; }
+  .page-heading, .invite-panel .section-heading { align-items: flex-start; flex-direction: column; }
+  .panel { padding: 20px; }
+  .share-row { flex-direction: column; }
+  .section-heading { gap: 12px; }
+}

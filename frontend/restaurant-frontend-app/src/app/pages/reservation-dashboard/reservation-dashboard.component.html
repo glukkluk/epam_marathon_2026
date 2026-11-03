@@ -23,9 +23,6 @@
         (leaveFeedbackReservation)="openFeedback($event)"
         (updateFeedbackReservation)="openFeedback($event)"
       />
-      @if (reservation.guestCount > 1) {
-        <a class="button button--primary" [routerLink]="['/reservations', reservation.id, 'group-pre-order']">Group pre-order</a>
-      }
     }
   </ul>
 } @else {

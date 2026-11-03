@@ -20,61 +20,8 @@ interface GroupOrder {
   selector: 'app-group-pre-order',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  template: `
-    <main>
-      <a routerLink="/reservations">← My reservations</a>
-      <h1>Group pre-order</h1>
-      <p>Invite your guests, review everyone's dishes and confirm one order for the table.</p>
-      @if (error()) { <p role="alert">{{ error() }}</p> }
-      @if (order(); as group) {
-        <p>{{ group.startTime | date:'medium' }} · {{ group.status }}</p>
-        @if (group.status === 'Open') {
-          <button class="button button--primary" [disabled]="busy()" (click)="invite()">Get invitation link</button>
-          @if (inviteLink()) {
-            <label for="invite-link">Share this link with your guests</label>
-            <input id="invite-link" readonly [value]="inviteLink()" />
-            <button class="button" (click)="copyLink()">{{ copied() ? 'Copied!' : 'Copy link' }}</button>
-          }
-          <p>Guests do not need an account. Confirm at least 30 minutes before arrival.</p>
-        }
-        <button class="button" [disabled]="busy()" (click)="load()">Refresh selections</button>
-        @if (group.ownerItems.length) {
-          <section><h2>Your selection</h2>
-            @for (item of group.ownerItems; track item.dishId) {
-              <p>{{ item.name }} × {{ item.quantity }} — {{ item.price * item.quantity | currency }}</p>
-            }
-          </section>
-        }
-        @for (guest of group.participants; track guest.id) {
-          <section>
-            <h2>{{ guest.name }} · {{ guest.isSubmitted ? 'Ready' : 'Choosing dishes' }}</h2>
-            @for (item of guest.items; track item.dishId) {
-              <p>{{ item.name }} × {{ item.quantity }} — {{ item.price * item.quantity | currency }}</p>
-            } @empty { <p>No dishes selected yet.</p> }
-            <strong>Subtotal: {{ guest.total | currency }}</strong>
-          </section>
-        } @empty { <p>No guests have joined yet. Share the invitation link to get started.</p> }
-        <h2>Table total: {{ group.total | currency }}</h2>
-        @if (group.status === 'Open') {
-          @if (!ready()) { <p>Wait for all joined guests to submit their selections.</p> }
-          <button class="button button--primary" [disabled]="busy() || !ready() || group.total <= 0" (click)="confirm()">
-            {{ busy() ? 'Please wait…' : 'Confirm group pre-order' }}
-          </button>
-        } @else if (group.status === 'Submitted') {
-          <p role="status">The shared order has been sent to your restaurant.</p>
-        }
-      } @else if (busy()) { <p role="status">Loading group pre-order…</p> }
-      @if (!order() && !busy()) { <button class="button" (click)="load()">Retry</button> }
-    </main>
-  `,
-  styles: [`
-    main { max-width: 850px; margin: 2rem auto; padding: 1rem; }
-    section { border: 1px solid #ddd; border-radius: 12px; padding: 1rem; margin: 1rem 0; }
-    button { margin: .5rem .5rem .5rem 0; }
-    label, input { display: block; margin-top: 1rem; }
-    input { width: 100%; padding: .75rem; box-sizing: border-box; }
-    [role=alert] { color: #a32121; }
-  `],
+  templateUrl: './group-pre-order.component.html',
+  styleUrl: './group-pre-order.component.scss',
 })
 export class GroupPreOrderComponent {
   private readonly http = inject(HttpClient);
@@ -87,6 +34,9 @@ export class GroupPreOrderComponent {
   readonly inviteLink = signal('');
   readonly copied = signal(false);
   readonly ready = computed(() => this.order()?.participants.every(g => g.isSubmitted) ?? false);
+  readonly ownerTotal = computed(() => this.order()?.ownerItems.reduce((sum, item) => sum + item.price * item.quantity, 0) ?? 0);
+  readonly guestsTotal = computed(() => this.order()?.participants.reduce((sum, guest) => sum + guest.total, 0) ?? 0);
+  readonly readyCount = computed(() => this.order()?.participants.filter(guest => guest.isSubmitted).length ?? 0);
 
   constructor() { void this.load(); }
 

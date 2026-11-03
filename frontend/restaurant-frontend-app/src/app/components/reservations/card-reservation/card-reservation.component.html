@@ -122,7 +122,28 @@
     </div>
   </div>
 
-  <div class="actions">
+  @if (role() === Roles.CUSTOMER && r().status === ReservationStatusCustomer.Reserved) {
+    <div class="order-options" aria-label="Pre-order options">
+      <section class="order-option">
+        <div>
+          <h3>My order</h3>
+          <p>Choose dishes for yourself.</p>
+        </div>
+        <button type="button" class="button button--secondary button--large" (click)="onPreOrder()">My dishes</button>
+      </section>
+      @if (r().guestCount > 1) {
+        <section class="order-option order-option--group">
+          <div>
+            <h3>Group order</h3>
+            <p>Invite guests and review the whole table.</p>
+          </div>
+          <a class="button button--primary button--large" [routerLink]="['/reservations', r().id, 'group-pre-order']">Manage group</a>
+        </section>
+      }
+    </div>
+  }
+
+  <div class="actions" [class.actions--customer]="role() === Roles.CUSTOMER">
     @switch (r().status) {
       @case (ReservationStatusCustomer.Reserved) {
         <button
@@ -161,14 +182,6 @@
               Pre-order
             </button>
           }
-        } @else if (role() === Roles.CUSTOMER) {
-          <button
-            type="button"
-            class="button button--primary button--large"
-            (click)="onPreOrder()"
-          >
-            Pre-order
-          </button>
         }
       }
 

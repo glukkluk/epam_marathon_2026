@@ -1,5 +1,20 @@
 @use 'app/shared/styles/abstracts/colors' as color;
 
+:host { display: block; min-width: 0; }
+
+.order-options { display: grid; gap: .75rem; margin-top: 1.5rem; }
+.order-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1rem; border: 1px solid #e1e6e1; border-radius: 12px;
+  h3 { font-size: 1rem; font-weight: 600; margin: 0 0 .25rem; }
+  p { font-size: .8rem; line-height: 1.5; color: #626b64; }
+  .button { flex-shrink: 0; font-size: .85rem; text-decoration: none; }
+  &--group { background: #f0f7f1; border-color: #cde2d0; }
+  @media (max-width: 450px) { align-items: stretch; flex-direction: column; }
+}
+
+.actions.actions--customer { margin-top: 1rem; flex-direction: row; align-self: stretch; justify-content: flex-end; }
+
 .card {
   box-sizing: border-box;
   display: flex;

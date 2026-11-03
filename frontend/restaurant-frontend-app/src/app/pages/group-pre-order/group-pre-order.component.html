@@ -1,0 +1,96 @@
+<main class="group-page">
+  <a class="back-link" routerLink="/reservations">← My reservations</a>
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">SHARED TABLE</p>
+      <h1>Group pre-order</h1>
+      <p class="muted">Your dishes and your guests’ selections, together in one order.</p>
+    </div>
+    @if (order(); as group) {
+      <span class="status" [class.status--closed]="group.status === 'Closed'">{{ group.status === 'Open' ? 'Collecting selections' : group.status === 'Submitted' ? 'Confirmed' : 'Closed' }}</span>
+    }
+  </header>
+  @if (error()) { <p class="notice notice--error" role="alert">{{ error() }}</p> }
+  @if (order(); as group) {
+    <div class="reservation-meta">
+      <span>{{ group.startTime | date:'MMMM d, yyyy' }}</span>
+      <span>{{ group.startTime | date:'shortTime' }}</span>
+      <span>{{ group.participants.length }} guests joined · {{ readyCount() }} ready</span>
+    </div>
+    @if (group.status === 'Closed') {
+      <p class="notice" role="status">This group pre-order is closed. Invitations and new selections are no longer available.</p>
+    }
+    <div class="workspace">
+      <div class="selections">
+        @if (group.status === 'Open') {
+          <section class="panel invite-panel">
+            <div class="section-heading">
+              <div><h2>Invite your guests</h2><p class="muted">Everyone chooses their own dishes. No account needed.</p></div>
+              <button class="action action--primary" [disabled]="busy()" (click)="invite()">Get invitation link</button>
+            </div>
+            @if (inviteLink()) {
+              <label for="invite-link">Share this link</label>
+              <div class="share-row">
+                <input id="invite-link" readonly [value]="inviteLink()" />
+                <button class="action action--outline" (click)="copyLink()">{{ copied() ? 'Copied!' : 'Copy link' }}</button>
+              </div>
+            }
+          </section>
+        }
+        <section class="panel own-selection">
+          <div class="section-heading">
+            <div><p class="eyebrow">ONLY YOU</p><h2>My dishes</h2></div>
+            <strong>{{ ownerTotal() | currency }}</strong>
+          </div>
+          @for (item of group.ownerItems; track item.dishId) {
+            <div class="dish-row"><span>{{ item.name }} <span class="muted">× {{ item.quantity }}</span></span><strong>{{ item.price * item.quantity | currency }}</strong></div>
+          } @empty {
+            <p class="empty-copy">You haven’t selected any dishes for yourself.</p>
+          }
+          @if (group.status === 'Open') {
+            <p class="hint">Use “My dishes” on your reservation to choose your own meal. It will be included in the table total.</p>
+          }
+        </section>
+        <section class="guest-selections" aria-labelledby="guest-selections-heading">
+          <div class="section-heading guest-heading">
+            <div><p class="eyebrow">YOUR GROUP</p><h2 id="guest-selections-heading">Guests’ dishes <span class="count">{{ group.participants.length }}</span></h2></div>
+            <button class="action action--outline" [disabled]="busy()" (click)="load()">{{ busy() ? 'Refreshing…' : 'Refresh' }}</button>
+          </div>
+          @for (guest of group.participants; track guest.id) {
+            <article class="panel guest-card">
+              <div class="section-heading">
+                <h3>{{ guest.name }}</h3>
+                <span class="guest-status" [class.guest-status--ready]="guest.isSubmitted">{{ guest.isSubmitted ? 'Ready' : 'Choosing dishes' }}</span>
+              </div>
+              @for (item of guest.items; track item.dishId) {
+                <div class="dish-row"><span>{{ item.name }} <span class="muted">× {{ item.quantity }}</span></span><strong>{{ item.price * item.quantity | currency }}</strong></div>
+              } @empty { <p class="empty-copy">No dishes selected yet.</p> }
+              <div class="subtotal"><span>Guest subtotal</span><strong>{{ guest.total | currency }}</strong></div>
+            </article>
+          } @empty {
+            <div class="panel empty-state">
+              <img src="assets/svg/people-green.svg" alt="" />
+              <h3>No guest selections yet</h3>
+              <p class="muted">{{ group.status === 'Open' ? 'Share the invitation above. Each guest’s dishes will appear here.' : 'No guests added selections to this group order.' }}</p>
+            </div>
+          }
+        </section>
+      </div>
+      <aside class="panel summary" aria-labelledby="summary-heading">
+        <p class="eyebrow">WHOLE TABLE</p>
+        <h2 id="summary-heading">Order summary</h2>
+        <div class="summary-row"><span>My dishes</span><strong>{{ ownerTotal() | currency }}</strong></div>
+        <div class="summary-row"><span>Guests’ dishes</span><strong>{{ guestsTotal() | currency }}</strong></div>
+        <div class="table-total"><span>Table total</span><strong>{{ group.total | currency }}</strong></div>
+        @if (group.status === 'Open') {
+          <p class="hint">Confirm at least 30 minutes before arrival. Your order will be sent to the restaurant.</p>
+          @if (!ready()) { <p class="waiting" role="status">Waiting for {{ group.participants.length - readyCount() }} guest(s) to finish choosing.</p> }
+          <button class="action action--primary confirm" [disabled]="busy() || !ready() || group.total <= 0" (click)="confirm()">{{ busy() ? 'Please wait…' : 'Confirm group order' }}</button>
+        } @else if (group.status === 'Submitted') {
+          <p class="confirmation" role="status">Confirmed — the restaurant has received your group order.</p>
+        } @else { <p class="hint">This order is closed and cannot be confirmed.</p> }
+      </aside>
+    </div>
+  } @else if (busy()) { <p class="panel" role="status">Loading group pre-order…</p> }
+  @if (!order() && !busy()) { <button class="action action--outline" (click)="load()">Try again</button> }
+</main>

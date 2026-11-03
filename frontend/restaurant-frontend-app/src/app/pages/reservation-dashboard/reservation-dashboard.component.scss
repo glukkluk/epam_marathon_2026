@@ -16,24 +16,18 @@
 
 .reservation-list {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-      minmax(17.5rem, 30%)
-  );
-  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  align-items: start;
   justify-content: center;
   gap: 2rem;
 
   padding: 1.5rem;
+  max-width: 1440px;
+  margin: 0 auto;
 
   list-style: none;
 
   @media (max-width: 1150px) {
-    grid-template-columns: repeat(
-      auto-fill,
-        minmax(17.5rem, 100%)
-    );
-
     gap: 1rem;
   }
 }
