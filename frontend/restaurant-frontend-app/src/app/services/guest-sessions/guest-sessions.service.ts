@@ -50,6 +50,13 @@ export class GuestSessionsService {
         );
     }
 
+    getSession(guestSessionId: string, sessionToken: string) {
+        return this.http.get<{
+            name: string; isSubmitted: boolean;
+            items: { dish: GuestMenuDish; quantity: number }[];
+        }>(`${this.baseUrl}/guest/sessions/${guestSessionId}`, { headers: this.authHeaders(sessionToken) });
+    }
+
     addDish(guestSessionId: string, sessionToken: string, dishId: string, quantity: number) {
         return this.http.post(
             `${this.baseUrl}/guest/sessions/${guestSessionId}/dishes`,

@@ -31,6 +31,9 @@ public class GuestSessionServiceTests
 
     public GuestSessionServiceTests()
     {
+        _mockReservationRepository.Setup(r => r.GetReservationByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Reservation { Id = "reservation", TableId = "table", WaiterId = "waiter",
+                Status = APIHandler.Constants.ReservationStatus.Reserved, StartTime = DateTime.UtcNow.AddDays(1) });
         _guestSessionService = new GuestSessionService(
             _mockGroupReservationRepository.Object,
             _mockGuestSessionRepository.Object,
@@ -53,6 +56,8 @@ public class GuestSessionServiceTests
         groupReservation.ReservationId = parentReservation.Id;
 
         parentReservation.GuestCount = 5;
+        parentReservation.StartTime = DateTime.UtcNow.AddDays(1);
+        groupReservation.JoinedGuestCount = guestCount;
 
         _mockGroupReservationRepository
             .Setup(r => r.GetGroupReservationByIdAsync(groupReservation.GroupReservationId))
@@ -67,9 +72,9 @@ public class GuestSessionServiceTests
             .ReturnsAsync([]);
 
         GuestSession? session = null;
-        _mockGuestSessionRepository
-            .Setup(r => r.SaveAsync(It.IsAny<GuestSession>()))
-            .Callback<GuestSession>(s => session = s);
+        _mockGroupReservationRepository
+            .Setup(r => r.SaveGuestAsync(It.IsAny<GroupReservation>(), It.IsAny<GuestSession>(), false))
+            .Callback<GroupReservation, GuestSession, bool>((g, s, d) => session = s);
 
         _mockGuestSessionRepository
             .Setup(r => r.CountByGroupReservationId(groupReservation.GroupReservationId))
@@ -101,6 +106,7 @@ public class GuestSessionServiceTests
     [AutoData]
     public async Task CreateGuestSessionAsync_GroupReservationExpired_ThrowsGroupReservationExpiredException(CreateGuestSessionRequest request, GroupReservation groupReservation)
     {
+        _mockReservationRepository.Setup(r => r.GetReservationByIdAsync(It.IsAny<string>())).ReturnsAsync((Reservation?)null);
         groupReservation.GroupReservationId = request.GroupReservationId;
         groupReservation.Status = GroupReservationStatus.Open;
 
@@ -121,6 +127,7 @@ public class GuestSessionServiceTests
 
         groupReservation.ReservationId = parentReservation.Id;
         parentReservation.TableId = table.Id;
+        parentReservation.StartTime = DateTime.UtcNow.AddDays(1);
         dish.State = DishState.Available;
         int quantityToAdd = 2;
 
@@ -152,6 +159,7 @@ public class GuestSessionServiceTests
 
         groupReservation.ReservationId = parentReservation.Id;
         parentReservation.TableId = table.Id;
+        parentReservation.StartTime = DateTime.UtcNow.AddDays(1);
         dish.State = DishState.Available;
 
         _mockGuestSessionRepository.Setup(r => r.GetByGuestSessionId(guestSession.Id)).ReturnsAsync(guestSession);
@@ -209,6 +217,7 @@ public class GuestSessionServiceTests
         groupReservation.Status = GroupReservationStatus.Open;
         groupReservation.ReservationId = parentReservation.Id;
         parentReservation.TableId = table.Id;
+        parentReservation.StartTime = DateTime.UtcNow.AddDays(1);
 
         _mockGuestSessionRepository.Setup(r => r.GetByGuestSessionId(guestSession.Id)).ReturnsAsync(guestSession);
         _mockGroupReservationRepository.Setup(r => r.GetGroupReservationByIdAsync(groupReservation.GroupReservationId)).ReturnsAsync(groupReservation);
@@ -230,6 +239,7 @@ public class GuestSessionServiceTests
         groupReservation.Status = GroupReservationStatus.Open;
         groupReservation.ReservationId = parentReservation.Id;
         parentReservation.TableId = table.Id;
+        parentReservation.StartTime = DateTime.UtcNow.AddDays(1);
 
         _mockGuestSessionRepository.Setup(r => r.GetByGuestSessionId(guestSession.Id)).ReturnsAsync(guestSession);
         _mockGroupReservationRepository.Setup(r => r.GetGroupReservationByIdAsync(groupReservation.GroupReservationId)).ReturnsAsync(groupReservation);
@@ -384,6 +394,8 @@ public class GuestSessionServiceTests
         groupReservation.ReservationId = parentReservation.Id;
 
         parentReservation.GuestCount = reservationCapacity;
+        parentReservation.StartTime = DateTime.UtcNow.AddDays(1);
+        groupReservation.JoinedGuestCount = guestCount;
 
         _mockGroupReservationRepository
             .Setup(r => r.GetGroupReservationByIdAsync(groupReservation.GroupReservationId))
@@ -730,7 +742,6 @@ public class GuestSessionServiceTests
         };
     }
 }
-
 
 
 

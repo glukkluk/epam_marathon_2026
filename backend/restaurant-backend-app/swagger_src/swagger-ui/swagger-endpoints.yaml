@@ -17,6 +17,46 @@ tags:
     description: Operations for group reservations
 
 paths:
+  /reservations/{reservationId}/group-pre-order:
+    parameters:
+      - name: reservationId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Group Reservations]
+      summary: Review all guest selections and the table total (owner only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Group summary with participants, ownerItems, status and total. Each participant includes name, isSubmitted, items and total.
+        '401':
+          description: Authentication required
+        '403':
+          description: Caller is not the reservation owner
+        '404':
+          description: Reservation not found
+    post:
+      tags: [Group Reservations]
+      summary: Confirm the shared pre-order and notify the assigned waiter
+      description: Requires all joined guests to have submitted, available dishes, and an active reservation more than 30 minutes away. Saves the group, combined order and notification atomically. Repeated confirmation does not duplicate the order.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Confirmed group summary
+        '400':
+          description: Invalid selections, unfinished guests or expired reservation
+        '401':
+          description: Authentication required
+        '403':
+          description: Caller is not the reservation owner
+        '404':
+          description: Reservation not found
+        '409':
+          description: Concurrent group change; refresh and retry
   /guest/sessions/{guestSessionId}/dishes:
     post:
       tags:

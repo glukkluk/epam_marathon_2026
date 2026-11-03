@@ -48,6 +48,8 @@ public class GroupReservationServiceTests
         groupReservation.ReservationId = reservation.Id;
         groupReservation.Status = GroupReservationStatus.Open;
         reservation.TableId = table.Id;
+        reservation.Status = ReservationStatus.Reserved;
+        reservation.StartTime = DateTime.UtcNow.AddDays(1);
         table.LocationId = location.Id;
 
         _groupReservationRepositoryMock
@@ -100,7 +102,6 @@ public class GroupReservationServiceTests
 
     [Theory]
     [InlineAutoData(GroupReservationStatus.Closed)]
-    [InlineAutoData(GroupReservationStatus.Submitted)]
     public async Task GetGroupReservationByTokenAsync_GroupReservationIsNotOpen_ThrowsException(
         GroupReservationStatus status,
         GroupReservation groupReservation)
@@ -116,10 +117,13 @@ public class GroupReservationServiceTests
 
     [Theory]
     [AutoData]
-    public async Task GetGroupReservationByTokenAsync_WhenGuestCountIsMax_ThrowsGuestLimitExceeded(GroupReservation groupReservation, Reservation reservation)
+    public async Task GetGroupReservationByTokenAsync_WhenGuestCountIsMax_StillReturnsDetails(GroupReservation groupReservation, Reservation reservation, Table table)
     {
         groupReservation.Status = GroupReservationStatus.Open;
         groupReservation.ReservationId = reservation.Id;
+        reservation.Status = ReservationStatus.Reserved;
+        reservation.StartTime = DateTime.UtcNow.AddDays(1);
+        _tableRepositoryMock.Setup(r => r.GetTableAsync(reservation.TableId)).ReturnsAsync(table);
 
         _groupReservationRepositoryMock
             .Setup(r => r.GetGroupReservationByTokenAsync(groupReservation.ReservationToken))
@@ -133,7 +137,8 @@ public class GroupReservationServiceTests
             .Setup(r => r.CountByGroupReservationId(groupReservation.GroupReservationId))
             .ReturnsAsync(reservation.GuestCount);
 
-        await Assert.ThrowsAsync<GuestLimitExceededException>(() => _service.GetGroupReservationByTokenAsync(groupReservation.ReservationToken));
+        var result = await _service.GetGroupReservationByTokenAsync(groupReservation.ReservationToken);
+        Assert.Equal(groupReservation.GroupReservationId, result.GroupReservationId);
     }
 
     [Theory]
@@ -170,6 +175,7 @@ public class GroupReservationServiceTests
     [AutoData]
     public async Task GetGroupReservationInviteTokenAsync_ValidInput_ReturnsToken(Reservation reservation, GroupReservation groupReservation)
     {
+        reservation.StartTime = DateTime.UtcNow.AddDays(1);
         reservation.Status = ReservationStatus.Reserved;
         reservation.GuestCount = 3;
         groupReservation.ReservationId = reservation.Id;
@@ -234,6 +240,7 @@ public class GroupReservationServiceTests
     [InlineAutoData(GroupReservationStatus.Submitted, typeof(GroupReservationSubmittedException))]
     public async Task GetGroupReservationInviteTokenAsync_GroupStatusIsNotOpen_ThrowsException(GroupReservationStatus status, Type type, Reservation reservation, GroupReservation groupReservation)
     {
+        reservation.StartTime = DateTime.UtcNow.AddDays(1);
         reservation.Status = ReservationStatus.Reserved;
         reservation.GuestCount = 3;
         groupReservation.ReservationId = reservation.Id;

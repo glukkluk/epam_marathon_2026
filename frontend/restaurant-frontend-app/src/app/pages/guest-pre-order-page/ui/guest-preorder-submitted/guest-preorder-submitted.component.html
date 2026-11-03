@@ -7,7 +7,7 @@
         <h1>Pre-Order Submitted!</h1>
 
         <p class="subtitle">
-            Your selections have been added to {{ guestName() || 'guest' }}'s table.
+            Your selections have been sent to {{ invite()?.InviterName || 'the reservation owner' }} for confirmation.
             <br />
             <span class="subtitle-2">The restaurant will have everything ready for you.</span>
         </p>
@@ -57,8 +57,5 @@
             <strong class="total-value">{{ total() | currency: '$' }}</strong>
         </div>
 
-        <app-custom-button variant="secondary" fullWidth (click)="createNew.emit()">
-            Create New Pre-Order
-        </app-custom-button>
     </div>
 </div>

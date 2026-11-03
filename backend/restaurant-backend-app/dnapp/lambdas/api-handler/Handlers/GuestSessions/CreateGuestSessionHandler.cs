@@ -24,5 +24,9 @@ public class CreateGuestSessionHandler(IGuestSessionService guestSessionService)
         {
             return ResponseBuilder.CreateErrorCodeResponse(exception);
         }
+        catch (Amazon.DynamoDBv2.Model.TransactionCanceledException)
+        {
+            return ResponseBuilder.CreateErrorResponse(409, "The group changed. Please try joining again.", context.Logger);
+        }
     }
 }

@@ -96,6 +96,12 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'reservations/:reservationId/group-pre-order',
+        canActivate: [AuthGuard],
+        data: { authorized: true },
+        loadComponent: () => import('./pages/group-pre-order/group-pre-order.component').then(m => m.GroupPreOrderComponent),
+      },
+      {
         path: 'join/:token',
         loadComponent: () =>
           import('./pages/guest-pre-order-page/guest-pre-order-page.component').then(

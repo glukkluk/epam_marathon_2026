@@ -81,6 +81,12 @@ export class GuestPreorderStore {
         if (this.contextId() === id) return;
 
         this.contextId.set(id);
+        this.guestSessionId.set(null);
+        this.guestSessionToken.set(null);
+        this.guestName.set('');
+        this.cartItems.set([]);
+        this.menuByCategory.set({});
+        this.status.set('active');
         void this.loadInviteByToken(id);
 
         const name = localStorage.getItem(this.key(id, 'guestName'));
@@ -94,7 +100,7 @@ export class GuestPreorderStore {
 
         // If guest was already joined on this device/browser, load menu automatically
         if (this.guestSessionId() && this.guestSessionToken()) {
-            void this.loadMenu();
+            void this.restoreSession();
         }
 
         if (name) this.guestName.set(name);
@@ -125,14 +131,35 @@ export class GuestPreorderStore {
         }
     }
 
+    private async restoreSession() {
+        const id = this.guestSessionId();
+        const token = this.guestSessionToken();
+        if (!id || !token) return;
+        this.cartBusy.set(true);
+        try {
+            const session = await firstValueFrom(this.guestSessionsService.getSession(id, token));
+            this.guestName.set(session.name);
+            this.cartItems.set(session.items.map(item => ({
+                dishId: item.dish.id, title: item.dish.name, price: item.dish.price,
+                imageUrl: item.dish.imageUrl ?? undefined, qty: item.quantity,
+            })));
+            this.status.set(session.isSubmitted ? 'submitted' : 'active');
+            if (!session.isSubmitted) await this.loadMenu();
+        } catch {
+            this.cartError.set('Could not restore your selection. Please reload to try again.');
+        } finally { this.cartBusy.set(false); }
+    }
+
     async join(name: string) {
+        if (this.joinLoading()) return;
         const inv = this.invite();
         if (!inv) {
             this.joinError.set('Invite is not loaded yet');
             return;
         }
 
-        this.setGuestName(name);
+        const guestName = name.trim();
+        if (!guestName || guestName.length > 80) return;
 
         const groupReservationId = inv.GroupReservationId;
         if (!groupReservationId) {
@@ -142,22 +169,22 @@ export class GuestPreorderStore {
 
         const payload = {
             groupReservationId,
-            guestName: this.guestName(),
+            guestName,
         };
 
-        console.log('[join payload]', payload);
 
         this.joinLoading.set(true);
         this.joinError.set(null);
 
         try {
             const res = await firstValueFrom(this.guestSessionsService.createSession(payload));
+            this.setGuestName(guestName);
             this.guestSessionId.set(res.SessionId);
             this.guestSessionToken.set(res.SessionToken);
             await this.loadMenu();
         } catch (e) {
-            console.log('[join error]', e);
-            this.joinError.set('Failed to join session');
+            this.joinError.set(e instanceof HttpErrorResponse && typeof e.error?.error === 'string'
+                ? e.error.error : 'Could not join. The table may be full or the invitation closed. Please try again.');
         } finally {
             this.joinLoading.set(false);
         }
@@ -291,41 +318,6 @@ export class GuestPreorderStore {
 
         const ctx = this.contextId();
         if (ctx) this.clearStorage(ctx);
-    }
-
-    async createNewPreorder() {
-        const ctx = this.contextId();
-        const invite = this.invite();
-        const guestName = this.guestName().trim();
-        if (!ctx || !invite?.GroupReservationId || !guestName || this.joinLoading()) return;
-
-        localStorage.removeItem(this.key(ctx, 'cart'));
-        localStorage.removeItem(this.key(ctx, 'guestSessionId'));
-        localStorage.removeItem(this.key(ctx, 'guestSessionToken'));
-
-        this.guestSessionId.set(null);
-        this.guestSessionToken.set(null);
-        this.menuByCategory.set({});
-        this.menuError.set(null);
-        this.menuLoading.set(true);
-        this.cartItems.set([]);
-        this.status.set('active');
-        this.joinLoading.set(true);
-
-        try {
-            const session = await firstValueFrom(this.guestSessionsService.createSession({
-                groupReservationId: invite.GroupReservationId,
-                guestName,
-            }));
-            this.guestSessionId.set(session.SessionId);
-            this.guestSessionToken.set(session.SessionToken);
-            await this.loadMenu();
-        } catch {
-            this.menuError.set('Could not start a new pre-order. Please try again.');
-        } finally {
-            this.menuLoading.set(false);
-            this.joinLoading.set(false);
-        }
     }
 
     private async changeRemoteQuantity(

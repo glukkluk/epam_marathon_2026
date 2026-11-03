@@ -1,6 +1,6 @@
 @if (store.status() === 'submitted') {
 <app-guest-preorder-submitted [items]="store.cartItems()" [total]="store.total()" [guestName]="store.guestName()"
-    [invite]="store.invite()" (createNew)="store.createNewPreorder()" />
+    [invite]="store.invite()" />
 } @else {
 @if (store.inviteError() === 'retryable') {
 <section class="invite-retry" role="alert">
@@ -90,8 +90,8 @@
     </div>
 
 <!-- mandatory modal: show until name is set -->
-@if (!store.guestName()) {
-<app-guest-name-modal [invite]="store.inviteVm()" (confirmed)="store.join($event)" (closed)="noop()" />
+@if (!store.guestSessionId()) {
+<app-guest-name-modal [invite]="store.inviteVm()" [busy]="store.joinLoading()" [error]="store.joinError()" (confirmed)="store.join($event)" (closed)="noop()" />
 }
 
 <!-- cart drawer -->

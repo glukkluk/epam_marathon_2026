@@ -4,6 +4,15 @@ namespace APIHandler.Entities;
 
 public class GroupReservation
 {
+    [DynamoDBVersion]
+    public int? Version { get; set; }
+
+    [DynamoDBProperty("joinedGuestCount")]
+    public int? JoinedGuestCount { get; set; }
+
+    [DynamoDBProperty("ownerDishes")]
+    public System.Collections.Generic.List<OrderItem> OwnerDishes { get; set; } = [];
+
     [DynamoDBHashKey("groupReservationId")]
     public required string GroupReservationId { get; set; }
 

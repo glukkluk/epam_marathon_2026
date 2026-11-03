@@ -29,17 +29,15 @@ public class GroupReservationService(
         GroupReservation groupReservation = await groupReservationRepository.GetGroupReservationByTokenAsync(token)
             ?? throw new GroupReservationNotFoundException();
 
-        if (groupReservation.Status != GroupReservationStatus.Open)
+        if (groupReservation.Status == GroupReservationStatus.Closed)
             throw new GroupReservationExpiredException();
 
         Task<Reservation?> reservationTask = reservationRepository.GetReservationByIdAsync(groupReservation.ReservationId);
-        Task<int> countTask = guestSessionRepository.CountByGroupReservationId(groupReservation.GroupReservationId);
 
         Reservation reservation = await reservationTask ?? throw new ValidationException("Associated reservation not found.");
-        int joinedGuestsCount = await countTask;
 
-        if (joinedGuestsCount + 1 >= reservation.GuestCount)
-            throw new GuestLimitExceededException();
+        if (reservation.Status != ReservationStatus.Reserved || reservation.StartTime.ToUniversalTime() <= DateTime.UtcNow)
+            throw new GroupReservationExpiredException();
 
         Table table = await tableRepository.GetTableAsync(reservation.TableId)
             ?? throw new InvalidOperationException("Associated table not found.");
@@ -79,6 +77,7 @@ public class GroupReservationService(
             ReservationId = reservationId,
             ReservationToken = Guid.NewGuid().ToString("N"),
             Status = GroupReservationStatus.Open,
+            JoinedGuestCount = 0,
         };
 
         await groupReservationRepository.SaveGroupReservationAsync(groupReservation);
@@ -129,10 +128,11 @@ public class GroupReservationService(
         if (reservation.GuestCount < 2)
             throw new ValidationException("Retrieving invitation token for the reservation with only one guest is not permitted.");
 
-        if (reservation.Status != ReservationStatus.Reserved)
+        if (reservation.Status != ReservationStatus.Reserved || DateTime.UtcNow >= reservation.StartTime.ToUniversalTime().AddMinutes(-30))
             throw new GroupReservationExpiredException("The group reservation is expired.");
 
-        GroupReservation groupReservation = (await groupReservationRepository.GetByReservationIdAsync(reservationId))!;
+        GroupReservation groupReservation = await groupReservationRepository.GetByReservationIdAsync(reservationId)
+            ?? throw new GroupReservationNotFoundException();
 
         if (groupReservation.Status == GroupReservationStatus.Submitted)
             throw new GroupReservationSubmittedException();
@@ -143,4 +143,3 @@ public class GroupReservationService(
         return new GetGroupInviteTokenResponse(groupReservation.ReservationToken);
     }
 }
-

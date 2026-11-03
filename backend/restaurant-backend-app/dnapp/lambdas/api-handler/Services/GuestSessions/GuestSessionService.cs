@@ -33,6 +33,9 @@ public class GuestSessionService(
 {
     public async Task<bool> IsAuthorizedAsync(string guestSessionToken, string guestSessionId)
     {
+        if (string.IsNullOrWhiteSpace(guestSessionToken)) return false;
+        try { Convert.FromBase64String(guestSessionToken); }
+        catch (FormatException) { return false; }
         string hash = Convert.ToBase64String(SHA256.HashData(Convert.FromBase64String(guestSessionToken)));
         GuestSession? guestSession = await guestSessionRepository.GetByTokenHash(hash);
         if (guestSession is null)
@@ -43,6 +46,8 @@ public class GuestSessionService(
 
     public async Task<CreatGuestSessionResponse> CreateGuestSessionAsync(CreateGuestSessionRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.GuestName) || request.GuestName.Trim().Length > 80)
+            throw new ValidationException("Guest name must contain between 1 and 80 characters.");
         GroupReservation group = await GetGroupReservationAndValidateAsync(request.GroupReservationId);
 
         Task<Reservation?> reservationTask = reservationRepository.GetReservationByIdAsync(group.ReservationId);
@@ -55,7 +60,7 @@ public class GuestSessionService(
             throw new GuestSessionExpiredException($"This pre-order session has expired or is no longer active. Current reservation status: '{reservation.Status}'.");
         }
 
-        int joinedGuestsCount = await countTask;
+        int joinedGuestsCount = group.JoinedGuestCount ?? await countTask;
 
         if (joinedGuestsCount + 1 >= reservation.GuestCount)
             throw new GuestLimitExceededException($"Guest limit exceeded. Maximum capacity is {reservation.GuestCount}, but {joinedGuestsCount} guests have already joined.");
@@ -65,13 +70,14 @@ public class GuestSessionService(
         var session = new GuestSession()
         {
             Id = Guid.NewGuid().ToString(),
-            GuestName = request.GuestName,
+            GuestName = request.GuestName.Trim(),
             GroupReservationId = group.GroupReservationId,
             SessionTokenHash = Convert.ToBase64String(SHA256.HashData(tokenBytes)),
             Dishes = [],
         };
 
-        await guestSessionRepository.SaveAsync(session);
+        group.JoinedGuestCount = joinedGuestsCount + 1;
+        await groupReservationRepository.SaveGuestAsync(group, session);
 
         return new CreatGuestSessionResponse(session.Id, Convert.ToBase64String(tokenBytes));
     }
@@ -175,6 +181,7 @@ public class GuestSessionService(
     public async Task<GetAllSessionsResponse> DeleteGuestSessionAsync(string userId, string groupReservationId, string guestSessionId)
     {
         await ValidateReservationOwnerAsync(groupReservationId, userId);
+        var group = await GetGroupReservationAndValidateAsync(groupReservationId);
 
         var session = await guestSessionRepository.GetByGuestSessionId(guestSessionId)
             ?? throw new GuestSessionNotFoundException($"Guest session with id {guestSessionId} not found.");
@@ -184,7 +191,8 @@ public class GuestSessionService(
             throw new ValidationException("Guest session does not belong to this group reservation.");
         }
 
-        await guestSessionRepository.DeleteAsync(session);
+        group.JoinedGuestCount = Math.Max(0, (group.JoinedGuestCount ?? await guestSessionRepository.CountByGroupReservationId(groupReservationId)) - 1);
+        await groupReservationRepository.SaveGuestAsync(group, session, delete: true);
 
         var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
 
@@ -231,6 +239,10 @@ public class GuestSessionService(
     {
         GroupReservation? group = await groupReservationRepository.GetGroupReservationByIdAsync(groupReservationId);
         ValidateGroupReservation(group);
+        var reservation = await reservationRepository.GetReservationByIdAsync(group.ReservationId);
+        if (reservation is null || reservation.Status != ReservationStatus.Reserved ||
+            DateTime.UtcNow >= reservation.StartTime.ToUniversalTime().AddMinutes(-30))
+            throw new GroupReservationExpiredException();
         return group;
     }
 
@@ -266,6 +278,10 @@ public class GuestSessionService(
             throw new GuestSessionSubmittedException();
 
         await ValidateGroupReservationId(session.GroupReservationId);
+        var group = await groupReservationRepository.GetGroupReservationByIdAsync(session.GroupReservationId)
+            ?? throw new GroupReservationNotFoundException();
+        if (group.Status != GroupReservationStatus.Open)
+            throw new GroupReservationSubmittedException();
 
         return session;
     }
@@ -357,7 +373,4 @@ public class GuestSessionService(
     }
 
 }
-
-
-
 

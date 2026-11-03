@@ -7,6 +7,10 @@ namespace APIHandler.Entities;
 
 public class Order
 {
+    [DynamoDBVersion]
+    [JsonIgnore]
+    public int? Version { get; set; }
+
     [DynamoDBHashKey("orderId")]
     [JsonPropertyName("orderId")]
     public required string OrderId { get; set; }

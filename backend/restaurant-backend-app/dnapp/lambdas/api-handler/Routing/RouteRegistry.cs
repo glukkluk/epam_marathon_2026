@@ -109,6 +109,7 @@ public static class RouteRegistry
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<IOrderService, OrderService>();
         services.AddSingleton<IGroupReservationService, GroupReservationService>();
+        services.AddSingleton<GroupPreOrderService>();
         services.AddSingleton<IReservationService, ReservationService>();
         services.AddSingleton<IFeedbackService, FeedbackService>();
         services.AddSingleton<IGuestSessionService, GuestSessionService>();
@@ -185,6 +186,8 @@ public static class RouteRegistry
         ];
 
         List<RouteHandler> GetGuestAndGroupRoutes() => [
+            new RouteHandler(new Route(HttpMethods.GET, "/reservations/{reservationId}/group-pre-order"), ActivatorUtilities.CreateInstance<GroupPreOrderHandler>(provider)),
+            new RouteHandler(new Route(HttpMethods.POST, "/reservations/{reservationId}/group-pre-order"), ActivatorUtilities.CreateInstance<GroupPreOrderHandler>(provider)),
             new RouteHandler(new Route(HttpMethods.POST, "/guest/sessions"), ActivatorUtilities.CreateInstance<CreateGuestSessionHandler>(provider)),
             new RouteHandler(new Route(HttpMethods.GET, "/guest/sessions/{guestSessionId}"), ActivatorUtilities.CreateInstance<GetGuestSessionHandler>(provider)),
             new RouteHandler(new Route(HttpMethods.POST, "/guest/sessions/{guestSessionId}/dishes"), ActivatorUtilities.CreateInstance<AddDishToGuestSessionHandler>(provider)),
@@ -218,6 +221,5 @@ public static class RouteRegistry
         return allRoutes;
     }
 }
-
 
 
