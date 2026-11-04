@@ -7,7 +7,7 @@
   "runtime": "dotnet10",
   "memory": 128,
   "timeout": 100,
-  "lambda_path": "lambdas\\api-handler",
+  "lambda_path": "lambdas/api-handler",
   "dependencies": [],
   "event_sources": [],
   "env_variables": {

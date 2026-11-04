@@ -135,6 +135,7 @@ resource "aws_cloudwatch_metric_alarm" "api_gateway_5xx" {
 # AWS Budgets has no such restriction (it's IAM-permission based, not root-gated),
 # so it's the only viable free-tier cost guardrail here.
 resource "aws_budgets_budget" "monthly_cost" {
+  count        = length(var.alert_emails) > 0 ? 1 : 0
   name         = "restaurant-backend-monthly-cost"
   budget_type  = "COST"
   limit_amount = "5"

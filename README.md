@@ -1,5 +1,11 @@
 # Deployment Guide
 
+## GitHub Actions (без IAM Identity Providers)
+
+Детальна інструкція українською: [AWS Console, GitHub Secrets/Variables та перший деплой](docs/github-actions-deploy.uk.md).
+Workflows використовують access keys; перший запуск: **Terraform → Deploy (initial deploy) → Frontend**.
+Регіон за замовчуванням — `eu-north-1`.
+
 This repo uses three deployment tracks:
 
 - Terraform for shared AWS infrastructure under `infra/terraform`
@@ -34,8 +40,8 @@ Terraform manages the shared infrastructure resources in `infra/terraform`.
 Before deploying, verify terraform config files:
 Replace variables with your **AWS account ID** and **Email**
 
-- `infra/terraform/backend.tf` - replace the Terraform state bucket name
-- `infra/terraform/variables.tf` - replace the default `account_id` and `alert_emails`
+- Pass the state bucket and region to `terraform init` using `-backend-config`.
+- Set `account_id` and `alert_emails` in a local gitignored `terraform.tfvars`.
 
 
 Before running `terraform init`, create the Terraform state bucket with AWS CLI if it does not already exist. 
@@ -68,8 +74,8 @@ Windows PowerShell:
 ```powershell
 aws s3api create-bucket `
 	--bucket restaurant-terraform-state-$ACCOUNT_ID `
-	--region us-west-2 `
-	--create-bucket-configuration LocationConstraint=us-west-2
+	--region eu-north-1 `
+	--create-bucket-configuration LocationConstraint=eu-north-1
 
 aws s3api put-bucket-versioning `
 	--bucket restaurant-terraform-state-$ACCOUNT_ID `
@@ -86,8 +92,8 @@ Linux or macOS:
 ```bash
 aws s3api create-bucket \
 	--bucket restaurant-terraform-state-$ACCOUNT_ID \
-	--region us-west-2 \
-	--create-bucket-configuration LocationConstraint=us-west-2
+	--region eu-north-1 \
+	--create-bucket-configuration LocationConstraint=eu-north-1
 
 aws s3api put-bucket-versioning \
 	--bucket restaurant-terraform-state-$ACCOUNT_ID \
@@ -102,7 +108,7 @@ aws s3api put-public-access-block \
 ### After bucket creation
 ```bash
 cd ../../infra/terraform
-terraform init
+terraform init -backend-config="bucket=restaurant-terraform-state-<ACCOUNT_ID>" -backend-config="region=eu-north-1"
 terraform fmt -check -recursive
 terraform validate
 terraform plan
@@ -129,7 +135,7 @@ pip install aws-syndicate
 $env:SDCT_CONF = (Resolve-Path ".\.syndicate-config-restaurant-backend-app").Path
 syndicate create-deploy-target-bucket
 syndicate build
-syndicate deploy --deploy_name dev
+syndicate deploy --deploy-name dev
 ```
 
 On Linux or macOS, run:
@@ -141,18 +147,18 @@ source syndicate_venv/bin/activate
 export SDCT_CONF="$(pwd)/.syndicate-config-restaurant-backend-app"
 syndicate create-deploy-target-bucket
 syndicate build
-syndicate deploy --deploy_name dev
+syndicate deploy --deploy-name dev
 ```
 
 For an incremental update instead of a full deploy, run the matching command for your shell.
 
 ```
-syndicate update
+syndicate update --deploy-name dev
 ```
 
 ## 3. Deploy the frontend
 
-This section describes the manual deployment flow. It does not use GitHub Actions.
+This section describes the manual alternative to the Frontend GitHub Actions workflow.
 
 Terraform creates and configures everything needed for frontend hosting:
 
@@ -167,7 +173,7 @@ You do not need to configure the bucket manually after `terraform apply`. The ma
 Use the deployed API Gateway base URL as `BACKEND_URL`. Example:
 
 ```text
-https://<api-id>.execute-api.us-west-2.amazonaws.com/develop
+https://<api-id>.execute-api.eu-north-1.amazonaws.com/develop
 ```
 
 The production frontend build will fail unless `BACKEND_URL` is set.
@@ -175,7 +181,7 @@ The production frontend build will fail unless `BACKEND_URL` is set.
 To look it up in AWS:
 
 ```powershell
-aws apigateway get-rest-apis --region us-west-2 --query "items[?name=='restaurant-backend-api'].{name:name,id:id}" --output table
+aws apigateway get-rest-apis --region eu-north-1 --query "items[?name=='restaurant-backend-api'].{name:name,id:id}" --output table
 ```
 
 Or set variables from AWS CLI:
@@ -183,15 +189,15 @@ Or set variables from AWS CLI:
 Windows PowerShell:
 
 ```powershell
-$API_ID = aws apigateway get-rest-apis --region us-west-2 --query "items[?name=='restaurant-backend-api'].id | [0]" --output text
-$env:BACKEND_URL = "https://$API_ID.execute-api.us-west-2.amazonaws.com/develop"
+$API_ID = aws apigateway get-rest-apis --region eu-north-1 --query "items[?name=='restaurant-backend-api'].id | [0]" --output text
+$env:BACKEND_URL = "https://$API_ID.execute-api.eu-north-1.amazonaws.com/develop"
 ```
 
 Linux or macOS:
 
 ```bash
-API_ID=$(aws apigateway get-rest-apis --region us-west-2 --query "items[?name=='restaurant-backend-api'].id | [0]" --output text)
-export BACKEND_URL="https://$API_ID.execute-api.us-west-2.amazonaws.com/develop"
+API_ID=$(aws apigateway get-rest-apis --region eu-north-1 --query "items[?name=='restaurant-backend-api'].id | [0]" --output text)
+export BACKEND_URL="https://$API_ID.execute-api.eu-north-1.amazonaws.com/develop"
 ```
 
 ### 3.2 Build the production bundle
@@ -296,7 +302,7 @@ S3 bucket for storing terraform state have versioning configured. In order to de
 The Terraform state bucket is configured in `infra/terraform/backend.tf` and is not deleted by `terraform destroy`. Empty it first and then delete it manually:
 
 ```powershell
-aws s3api delete-bucket --bucket restaurant-terraform-state-$ACCOUNT_ID --region us-west-2
+aws s3api delete-bucket --bucket restaurant-terraform-state-$ACCOUNT_ID --region eu-north-1
 ```
 
 ### Remove the Syndicate artifacts bucket
@@ -305,7 +311,7 @@ The Syndicate deploy target bucket is not managed by Terraform in this repo. If 
 
 ```powershell
 aws s3 rm s3://marathon2026-restaurant-artifacts-$ACCOUNT_ID/ --recursive
-aws s3api delete-bucket --bucket marathon2026-restaurant-artifacts-$ACCOUNT_ID --region us-west-2
+aws s3api delete-bucket --bucket marathon2026-restaurant-artifacts-$ACCOUNT_ID --region eu-north-1
 ```
 
 Only do this if you are sure you no longer need the stored Syndicate build artifacts.

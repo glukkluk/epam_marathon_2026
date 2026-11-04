@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - "backend/**"
+      - "scripts/configure-syndicate.py"
+      - ".github/workflows/deploy.yml"
 
   workflow_dispatch:
     inputs:
@@ -16,16 +18,16 @@ on:
         type: boolean
 
 permissions:
-  id-token: write
   contents: read
 
 env:
   APP_DIR: backend/restaurant-backend-app
-  AWS_REGION: eu-north-1
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-north-1' }}
   DEPLOY_NAME: dev
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -41,10 +43,11 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Verify identity
-        run: aws sts get-caller-identity
+      - name: Read AWS account ID
+        run: echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_ENV"
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -60,15 +63,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-syndicate-${{ runner.os }}
+          key: pip-syndicate-1.21.3-${{ runner.os }}
 
       - name: Install AWS Syndicate
-        run: pip install aws-syndicate
+        run: pip install aws-syndicate==1.21.3
 
-      - name: Set Syndicate project_path
+      - name: Configure Syndicate for this account
+        env:
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+        run: python scripts/configure-syndicate.py
+
+      - name: Prepare artifacts bucket and restore remote state
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          SDCT_CONF: .syndicate-config-restaurant-backend-app
         run: |
-          sed -i "s|^project_path:.*|project_path: \"${GITHUB_WORKSPACE}/${APP_DIR}\"|" \
-            ${{ env.APP_DIR }}/.syndicate-config-restaurant-backend-app/syndicate.yml
+          if ! aws s3api head-bucket --bucket "marathon2026-restaurant-artifacts-${AWS_ACCOUNT_ID}"; then
+            syndicate create-deploy-target-bucket
+          fi
+          syndicate sync
 
       - name: Syndicate build
         working-directory: ${{ env.APP_DIR }}
@@ -81,11 +94,17 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         env:
           SDCT_CONF: .syndicate-config-restaurant-backend-app
-        run: syndicate deploy --deploy_name ${{ env.DEPLOY_NAME }}
+        run: syndicate deploy --deploy-name "$DEPLOY_NAME"
 
       - name: Syndicate update
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.deploy) }}
         working-directory: ${{ env.APP_DIR }}
         env:
           SDCT_CONF: .syndicate-config-restaurant-backend-app
-        run: syndicate update
+        run: syndicate update --deploy-name "$DEPLOY_NAME"
+
+      - name: Show backend URL
+        run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='restaurant-backend-api'].id | [0]" --output text)
+          test "$API_ID" != "None"
+          echo "BACKEND_URL=https://${API_ID}.execute-api.${AWS_REGION}.amazonaws.com/develop" >> "$GITHUB_STEP_SUMMARY"

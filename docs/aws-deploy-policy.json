@@ -1,0 +1,58 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageProjectServices",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*", "cloudfront:*", "lambda:*", "apigateway:*",
+        "dynamodb:*", "cognito-idp:*", "sqs:*", "scheduler:*",
+        "logs:*", "cloudwatch:*", "sns:*", "budgets:*", "tag:GetResources"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DiscoverIamResources",
+      "Effect": "Allow",
+      "Action": ["iam:Get*", "iam:List*"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ManageProjectRolesAndPolicies",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
+        "iam:UpdateAssumeRolePolicy", "iam:TagRole", "iam:UntagRole",
+        "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+        "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+        "iam:CreatePolicy", "iam:DeletePolicy", "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion",
+        "iam:TagPolicy", "iam:UntagPolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/api-handler-role",
+        "arn:aws:iam::*:role/reports-handler-role",
+        "arn:aws:iam::*:role/report-sender-role",
+        "arn:aws:iam::*:role/event-bridge-role",
+        "arn:aws:iam::*:policy/lambda-basic-execution",
+        "arn:aws:iam::*:policy/event-bridge-policy"
+      ]
+    },
+    {
+      "Sid": "PassProjectExecutionRoles",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "arn:aws:iam::*:role/api-handler-role",
+        "arn:aws:iam::*:role/reports-handler-role",
+        "arn:aws:iam::*:role/report-sender-role",
+        "arn:aws:iam::*:role/event-bridge-role"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": ["lambda.amazonaws.com", "scheduler.amazonaws.com"]
+        }
+      }
+    }
+  ]
+}

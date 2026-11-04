@@ -7,7 +7,10 @@ variable "aws_region" {
 variable "account_id" {
   description = "AWS account ID"
   type        = string
-  default     = "650357662457"
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.account_id))
+    error_message = "account_id must be a 12-digit AWS account ID."
+  }
 }
 
 variable "alert_emails" {

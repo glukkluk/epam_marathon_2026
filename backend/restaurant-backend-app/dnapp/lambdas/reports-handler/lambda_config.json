@@ -7,7 +7,7 @@
   "runtime": "dotnet10",
   "memory": 128,
   "timeout": 100,
-  "lambda_path": "lambdas\\reports-handler",
+  "lambda_path": "lambdas/reports-handler",
   "dependencies": [],
   "event_sources": [
     {

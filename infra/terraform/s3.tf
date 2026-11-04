@@ -132,6 +132,10 @@ resource "aws_s3_bucket" "frontend" {
   bucket = "restaurant-frontend-${var.account_id}"
 }
 
+output "frontend_bucket_name" {
+  value = aws_s3_bucket.frontend.id
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
