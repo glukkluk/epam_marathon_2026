@@ -39,17 +39,17 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: syndicate-${{ github.run_id }}
 
       - name: Verify identity
         run: aws sts get-caller-identity
 
-      - name: Setup .NET 8
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.x"
+          dotnet-version: "10.x"
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
@@ -64,6 +64,11 @@ jobs:
 
       - name: Install AWS Syndicate
         run: pip install aws-syndicate
+
+      - name: Set Syndicate project_path
+        run: |
+          sed -i "s|^project_path:.*|project_path: \"${GITHUB_WORKSPACE}/${APP_DIR}\"|" \
+            ${{ env.APP_DIR }}/.syndicate-config-restaurant-backend-app/syndicate.yml
 
       - name: Syndicate build
         working-directory: ${{ env.APP_DIR }}
